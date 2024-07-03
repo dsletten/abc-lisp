@@ -1,0 +1,63 @@
+#!/usr/local/bin/sbcl --script
+
+;;;;   Hey, Emacs, this is a -*- Mode: Lisp; Syntax: Common-Lisp -*- file!
+;;;;
+;;;;   Lisp is the medium of choice for people who enjoy free style and flexibility.
+;;;;   -- Gerald Jay Sussman
+;;;;
+;;;;   Name:               classify.lisp
+;;;;
+;;;;   Started:            Fri Nov 27 23:25:38 2020
+;;;;   Modifications:
+;;;;
+;;;;   Purpose:
+;;;;      Categorize roots of a quadratic polynomial without actually using complex numbers (See ABC ch. 4 ex. 23)
+;;;;
+;;;;
+;;;;   Calling Sequence:
+;;;;
+;;;;
+;;;;   Inputs:
+;;;;
+;;;;   Outputs:
+;;;;
+;;;;   Example:
+;;;;
+;;;;   Notes:
+;;;;
+;;;;
+(load "/home/slytobias/lisp/packages/shell")
+(load "/home/slytobias/lisp/packages/lang")
+
+(defpackage :classify (:use :common-lisp :shell :lang))
+
+(in-package :classify)
+
+(defun classify (a b c)
+  (cond ((and (zerop a) (zerop b)) (list :extremely-degenerate))
+        ((zerop a) (list :degenerate (/ (- c) b)))
+        (t (let ((discriminant (- (* b b) (* 4 a c)))
+                 (term1 (/ (- b) (* 2 a))))
+             (cond ((plusp discriminant) (list :distinct term1 (/ (sqrt discriminant) (* 2 a))))
+                   ((minusp discriminant) (list :complex term1 (/ (sqrt (- discriminant)) (* 2 a))))
+                   (t (list :duplicate term1)))) )))
+
+(unless (= (length (get-args)) 3)
+  (warn "Usage: classify A B C~%")
+  (sb-ext:quit))
+
+(let ((a (read-num (get-argv 0)))
+      (b (read-num (get-argv 1)))
+      (c (read-num (get-argv 2))))
+  (unless (every #'numberp (list a b c))
+    (apply #'warn "Invalid input: ~A ~A ~A~%" (get-args))
+    (sb-ext:quit))
+  (destructuring-bind (category . terms) (classify a b c)
+    (format t "Coefficients: a = ~,6F, b = ~,6F, c = ~,6F~%" a b c)
+    (format t ">> ")
+    (ecase category
+      (:extremely-degenerate (format t "Extremely degenerate.~%"))
+      (:degenerate (format t "Degenerate: root = ~,6F~%" (first terms)))
+      (:duplicate (format t "Duplicate real roots: root1 = ~,6F root2 = ~,6F~%" (first terms) (first terms)))
+      (:distinct (format t "Two real roots: root1 = ~,6F root2 = ~,6F~%" (apply #'+ terms) (apply #'- terms)))
+      (:complex (format t "Two complex roots: root1 = ~,6F + i*~,6F root2 = ~2:*~,6F - i*~,6F~%" (first terms) (second terms)))) ))
